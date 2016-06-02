@@ -1,6 +1,5 @@
 var tbCamPos = [
   { x: 12, y: -25, z: -100, pitch: 0, yawn: 0, roll:0 },
-  { x: 12, y: -25, z: -100, pitch: 0, yawn: 0, roll:0 },
   {x:-19, y:-6, z:-25.00000000000003, pitch:0, yawn:0, roll:0 },
   {x:-31, y:-5, z:-8.6666666666667, pitch:-1.0400000000000005, yawn:0, roll:-1.3400000000000007 },
   {x:-18, y:-7, z:-8.6666666666667, pitch:-1.0400000000000005, yawn:0, roll:-1.3400000000000007 },
@@ -11,6 +10,7 @@ var tbCamPos = [
   {x:5, y:-26, z:-8.6666666666667, pitch:-1.0400000000000005, yawn:0, roll:-0.2599999999999999 },
   {x:13, y:-36, z:-8.6666666666667, pitch:-1.0400000000000005, yawn:0, roll:-0.2599999999999999 },
   {x:19, y:-46, z:-20.333333333333364, pitch:0, yawn:0, roll:0 },
+  { x: 12, y: -25, z: -100, pitch: 0, yawn: 0, roll:0 },  
   { x: 12, y: -25, z: -100, pitch: 0, yawn: 0, roll:0 }        
 ];
 
@@ -19,6 +19,8 @@ var container;
 var camera, scene, renderer, effect, clock, controls;
 
 init();
+
+var anim = null;
 
 function setCamPos( camPos ) {
   camera.position.set(-camPos.x, -camPos.y, -camPos.z);
@@ -46,7 +48,7 @@ function animCamPos(iPos) {
   var end = tbCamPos[iPos+1];
   
   var param = { t: 0 };
-  var anim = new TWEEN.Tween(param).to( {t: 1.0}, 2500 ).easing( TWEEN.Easing.Sinusoidal.InOut );
+  anim = new TWEEN.Tween(param).to( {t: 1.0}, 2500 ).easing( TWEEN.Easing.Sinusoidal.InOut );
   anim.onUpdate( function() {
     var currentPos = {};
     lerp( start, end, param.t, currentPos, 'x' );
@@ -58,11 +60,9 @@ function animCamPos(iPos) {
     setCamPos( currentPos );    
   } );
   anim.onComplete( function() {
-    if (iPos<tbCamPos.length-2) {
-      animCamPos(iPos+1);
-    } else {
-      animCamPos(0);
-    }
+    anim = null;
+    var nextAnimPos = (iPos+1) % (tbCamPos.length-2);
+    animCamPos( nextAnimPos ); 
   } );
   anim.start();
 }   
@@ -73,8 +73,7 @@ function init() {
   
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 700);
   //testCamPos(0);
-  //setCamPos(tbCamPos[8]);
-  animCamPos(0);
+  setCamPos(tbCamPos[0]);  
   scene.add(camera);
   
   renderer = new THREE.WebGLRenderer();
@@ -121,21 +120,26 @@ function init() {
   var IMG_WIDTH = 76;
   var IMG_HEIGHT = 53;
   
-  var floorTexture = THREE.ImageUtils.loadTexture('img/4FDA54DE484E0836.png');
-  floorTexture.wrapS = THREE.RepeatWrapping;
-  floorTexture.wrapT = THREE.RepeatWrapping;
-  //floorTexture.repeat = new THREE.Vector2(50, 50);
-  floorTexture.anisotropy = renderer.getMaxAnisotropy();
-  var floorMaterial = new THREE.MeshBasicMaterial({
-    map: floorTexture
+  var loader = new THREE.TextureLoader();
+  loader.load( 'img/4FDA54DE484E0836.png', function(floorTexture) {
+    floorTexture.wrapS = THREE.RepeatWrapping;
+    floorTexture.wrapT = THREE.RepeatWrapping;
+    //floorTexture.repeat = new THREE.Vector2(50, 50);
+    floorTexture.anisotropy = renderer.getMaxAnisotropy();
+    var floorMaterial = new THREE.MeshBasicMaterial({
+      map: floorTexture
+    });
+    
+    var geometry = new THREE.PlaneBufferGeometry(102, 102);
+    var floor = new THREE.Mesh(geometry, floorMaterial);
+    //floor.position.x = (IMG_WIDTH-102)/2;
+    //floor.position.y = (102-IMG_HEIGHT)/2;
+    //floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
   });
   
-  var geometry = new THREE.PlaneBufferGeometry(102, 102);
-  var floor = new THREE.Mesh(geometry, floorMaterial);
-  //floor.position.x = (IMG_WIDTH-102)/2;
-  //floor.position.y = (102-IMG_HEIGHT)/2;
-  //floor.rotation.x = -Math.PI / 2;
-  scene.add(floor);
+  //var floorTexture = THREE.ImageUtils.loadTexture('img/4FDA54DE484E0836.png');
+  
   
   /*for (var i=-IMG_WIDTH/2; i<IMG_WIDTH; i+=5) {
     for (var j=-IMG_HEIGHT/2; j<IMG_HEIGHT; j+=5) {
@@ -207,5 +211,12 @@ function fullscreen() {
     container.mozRequestFullScreen();
   } else if (container.webkitRequestFullscreen) {
     container.webkitRequestFullscreen();
+  }
+  if (anim) {
+    anim.stop();
+    anim = null;
+    setCamPos( tbCamPos[0] );
+  } else {
+    animCamPos(0);
   }
 }			
